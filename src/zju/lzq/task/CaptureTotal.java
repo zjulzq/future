@@ -1,7 +1,6 @@
 package zju.lzq.task;
 
 import java.io.FileWriter;
-import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -17,6 +16,9 @@ import com.thoughtworks.selenium.Selenium;
 
 public class CaptureTotal {
 	private static final String HOST = "http://www.cffex.com.cn";
+	private static final String TABLE_BASE_PATH = "//div[@id='textArea']";
+	private static final int COLUMN_NUM = 7;
+	private static final int PORT = 4444;
 	private static Selenium selenium;
 	private static SeleniumServer server;
 	private static SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
@@ -32,9 +34,9 @@ public class CaptureTotal {
 	public static void main(String[] args) {
 		try {
 			server = new SeleniumServer();
-			server.getConfiguration().setPort(4444);
+			server.getConfiguration().setPort(PORT);
 			server.start();
-			selenium = new DefaultSelenium("localhost", 4444, "*googlechrome", HOST);
+			selenium = new DefaultSelenium("localhost", PORT, "*googlechrome", HOST);
 			selenium.start();
 			selenium.setSpeed("1");
 			if (args.length > 2) {
@@ -77,7 +79,7 @@ public class CaptureTotal {
 	}
 
 	@SuppressWarnings("deprecation")
-	private static void capture(CSVWriter csvWriter, Date date) throws IOException, InterruptedException {
+	private static void capture(CSVWriter csvWriter, Date date) {
 		if (date.getDay() == 0 || date.getDay() == 6 || date.compareTo(today) > 0) {
 			return;
 		}
@@ -90,29 +92,18 @@ public class CaptureTotal {
 			return;
 		}
 
-		long start = System.currentTimeMillis();
-		while (!selenium.isElementPresent("//div[@id='textArea']/table[1]/tbody/tr[1]/td[1]")) {
-			if (System.currentTimeMillis() - start > 100) {
-				return;
-			}
-		}
-
 		if (!headerAdded) {
-			String[] header = new String[7];
+			String[] header = new String[COLUMN_NUM];
 			header[0] = "日期";
 			for (int i = 1; i < header.length; i++) {
-				header[i] = getText(2, 2, columnIndexes[i - 1]);
+				header[i] = getTdText(2, 2, columnIndexes[i - 1]);
 			}
 			csvWriter.writeNext(header);
 			headerAdded = true;
 		}
 
-		int tableCount = selenium.getXpathCount("//div[@id='textArea']/table").intValue();
-		if (tableCount > 1) {
-			for (int i = 0; i < 3; i++) {
-				tableCount = selenium.getXpathCount("//div[@id='textArea']/table").intValue();
-			}
-		}
+		int tableCount = getTableCount();
+
 		List<String[]> list = new ArrayList<String[]>();
 		for (int index = 2; index <= tableCount; index = index + 2) {
 			list.add(captureTable(csvWriter, index));
@@ -134,32 +125,24 @@ public class CaptureTotal {
 			}
 			csvWriter.writeNext(row);
 		}
-
 	}
 
-	private static String[] captureTable(CSVWriter csvWriter, int index) throws IOException {
-		String[] row = new String[7];
+	private static String[] captureTable(CSVWriter csvWriter, int index) {
+		String[] row = new String[COLUMN_NUM];
 		String dateStr = "";
 		if (index == 2) {
-			while (!selenium.isElementPresent("//div[@id='textArea']/table[" + 1 + "]/tbody/tr[1]/td[2]")) {
+			while (!isTdPresent(1, 1, 2)) {
 			}
-			dateStr = selenium.getText("//div[@id='textArea']/table[" + 1 + "]/tbody/tr[1]/td[2]");
+
+			dateStr = getTdText(1, 1, 2);
 			dateStr = dateStr.substring(dateStr.indexOf(':') + 1);
 		}
 
-		int rowCount = selenium.getXpathCount("//div[@id='textArea']/table[" + index + "]/tbody/tr").intValue();
-		if (rowCount == 0) {
-			for (int i = 0; i < 3; i++) {
-				rowCount = selenium.getXpathCount("//div[@id='textArea']/table[" + index + "]/tbody/tr").intValue();
-			}
-		}
-		if (rowCount == 0) {
-			return row;
-		}
+		int rowCount = getTrCount(index);
 
 		row[0] = dateStr;
 		for (int i = 1; i < row.length; i++) {
-			row[i] = getText(index, rowCount, columnIndexes[i - 1]);
+			row[i] = getTdText(index, rowCount, columnIndexes[i - 1]);
 		}
 
 		return row;
@@ -175,13 +158,35 @@ public class CaptureTotal {
 		return result;
 	}
 
-	private static String getText(int tableIndex, int rowIndex, int columnIndex) {
-		String locator = "//div[@id='textArea']/table[" + tableIndex + "]/tbody/tr[" + rowIndex + "]/td[" + columnIndex + "]";
+	private static boolean isTdPresent(int tableIndex, int rowIndex, int columnIndex) {
+		String locator = getTdPath(tableIndex, rowIndex, columnIndex);
+		return selenium.isElementPresent(locator);
+	}
+
+	private static String getTdText(int tableIndex, int rowIndex, int columnIndex) {
+		String locator = getTdPath(tableIndex, rowIndex, columnIndex);
 		if (selenium.isElementPresent(locator)) {
 			return selenium.getText(locator);
 		} else {
 			return "";
 		}
+	}
 
+	private static int getTrCount(int tableIndex) {
+		String locator = getTablePath(tableIndex) + "/tbody/tr";
+		return selenium.getXpathCount(locator).intValue();
+	}
+
+	private static int getTableCount() {
+		String locator = TABLE_BASE_PATH + "/table";
+		return selenium.getXpathCount(locator).intValue();
+	}
+
+	private static String getTablePath(int tableIndex) {
+		return TABLE_BASE_PATH + "/table[" + tableIndex + "]";
+	}
+
+	private static String getTdPath(int tableIndex, int rowIndex, int columnIndex) {
+		return getTablePath(tableIndex) + "/tbody/tr[" + rowIndex + "]/td[" + columnIndex + "]";
 	}
 }
