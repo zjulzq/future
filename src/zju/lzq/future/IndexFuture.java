@@ -6,13 +6,8 @@ import au.com.bytecode.opencsv.CSVWriter;
 
 public class IndexFuture extends AbsFuture {
 	private static final String PAGE = "/fzjy/ccpm/";
-	private static int[] columnIndexes = new int[] { 3, 4, 7, 8, 11, 12 };
-	private static int[] tableIndexes = new int[] { 2, 4, 6, 8 };
-
-	public static void main(String[] args) {
-		AbsFuture future = new IndexFuture();
-		future.execute(args);
-	}
+	private int[] columnIndexes = new int[] { 3, 4, 7, 8, 11, 12 };
+	private int[] tableIndexes = new int[] { 2, 4, 6, 8 };
 
 	@Override
 	protected int getPort() {
@@ -20,14 +15,14 @@ public class IndexFuture extends AbsFuture {
 	}
 
 	/**
-	 * args[0]=类名, args[1]=日期, args[2]=速度
+	 * args[0]=类名, args[1]=IF/TF, args[2]=日期, args[3]=速度
 	 * 
 	 * @param args
 	 */
 	@Override
 	public void doBusiness(String[] args) {
-		if (args.length > 2) {
-			selenium.setSpeed(args[2]);
+		if (args.length >= 4) {
+			selenium.setSpeed(args[3]);
 		}
 
 		selenium.open(PAGE);
@@ -82,6 +77,16 @@ public class IndexFuture extends AbsFuture {
 	@Override
 	protected TableCoordinate getHeaderCoordinate(int columnIndex) {
 		return new TableCoordinate(2, 2, columnIndex);
+	}
+
+	@Override
+	protected String getPrefix() {
+		return "IF";
+	}
+
+	@Override
+	protected int getDivisor() {
+		return 2;
 	}
 
 }

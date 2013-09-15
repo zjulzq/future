@@ -26,6 +26,11 @@ public abstract class AbsFuture {
 	private SeleniumServer server;
 	private boolean headerAdded = false;
 
+	/**
+	 * args[0]=类名, args[1]=IF/TF, args[2]=日期, args[3]=速度
+	 * 
+	 * @param args
+	 */
 	public void execute(String[] args) {
 		try {
 			server = new SeleniumServer();
@@ -78,7 +83,7 @@ public abstract class AbsFuture {
 
 		List<String[]> list = new ArrayList<String[]>();
 		int[] tableIndexes = getTableIndexes();
-		for (int i = 0; i < tableCount / 2 && tableIndexes[i] <= tableCount; i++) {
+		for (int i = 0; i < tableCount / getDivisor() && tableIndexes[i] <= tableCount; i++) {
 			list.add(captureTableTotal(csvWriter, tableIndexes[i]));
 		}
 		if (list.size() > 0) {
@@ -104,10 +109,10 @@ public abstract class AbsFuture {
 		String fileName = null;
 		CSVWriter csvWriter = null;
 
-		if (args.length <= 1) {
-			fileName = sdf.format(today) + ".csv";
+		if (args.length <= 2) {
+			fileName = getPrefix() + "-" + sdf.format(today) + ".csv";
 		} else {
-			fileName = args[1] + ".csv";
+			fileName = getPrefix() + "-" + args[2] + ".csv";
 		}
 		try {
 			csvWriter = new CSVWriter(new FileWriter(fileName), CSVParser.DEFAULT_SEPARATOR, CSVWriter.NO_QUOTE_CHARACTER);
@@ -150,13 +155,17 @@ public abstract class AbsFuture {
 
 	protected abstract void capture(CSVWriter csvWriter, Date date);
 
+	protected abstract String getPrefix();
+
+	protected abstract int getDivisor();
+
 	protected void capture(String[] args) {
 		CSVWriter csvWriter = getCsvWriter(args);
 		try {
-			if (args.length <= 1) {
+			if (args.length <= 2) {
 				capture(csvWriter, today);
 			} else {
-				Date beginDate = sdf.parse(args[1]);
+				Date beginDate = sdf.parse(args[2]);
 				for (Date tmp = beginDate; tmp.compareTo(today) <= 0;) {
 					capture(csvWriter, tmp);
 					tmp = nextDate(tmp);
