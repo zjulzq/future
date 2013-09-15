@@ -20,7 +20,7 @@ public class CaptureProfit {
 	private static final String WAIT_LONG = "50000";
 	private Selenium selenium;
 	private SeleniumServer server;
-	private String fileName = "payProfit.csv";
+	public static final String fileName = "payProfit.csv";
 
 	public static void main(String[] args) {
 		CaptureProfit captureProfit = new CaptureProfit();
